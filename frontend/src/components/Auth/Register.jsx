@@ -11,7 +11,8 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     role: 'holder',
-    organization: ''
+    organization: '',
+    category: 'Other'
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -127,6 +128,27 @@ const Register = () => {
               placeholder="Your organization name"
             />
           </div>
+
+          {formData.role === 'issuer' && (
+            <div className="form-group">
+              <label htmlFor="category">Issuer Category</label>
+              <select
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                required
+              >
+                <option value="Education">Education</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Government">Government</option>
+                <option value="Finance">Finance</option>
+                <option value="Technology">Technology</option>
+                <option value="Other">Other</option>
+              </select>
+              <small>This helps holders find you in the Issuer Directory</small>
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="password">Password</label>

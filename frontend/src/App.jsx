@@ -6,7 +6,6 @@ import IssuerDashboard from './components/Issuer/IssuerDashboard';
 import HolderDashboard from './components/Holder/HolderDashboard';
 import VerifierDashboard from './components/Verifier/VerifierDashboard';
 import ProtectedRoute from './components/Common/ProtectedRoute';
-import IssuerDirectory from './components/Holder/IssuerDirectory';
 import { authAPI } from './services/api';
 import './styles/App.css';
 
@@ -98,17 +97,10 @@ function App() {
               )
             }
           />
-        </Routes>
-      </div>
-      <Routes>
-  
-  
-  {/* ✅ ADD THIS NEW ROUTE */}
-  <Route 
-  path="/issuer-directory" 
-  element={<IssuerDirectory />} 
-/>
+
 </Routes>
+         
+  </div>
     </Router>
   );
 }

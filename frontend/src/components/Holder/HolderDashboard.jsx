@@ -9,6 +9,7 @@ import ShareCredential from './ShareCredential';
 import { holderAPI, authAPI } from '../../services/api';
 import '../../styles/Dashboard.css';
 import DIDDisplay from '../Common/DIDDisplay';
+import IssuerDirectory from './IssuerDirectory';
 
 
 const HolderDashboard = ({ user: initialUser, onLogout }) => {
@@ -69,9 +70,12 @@ const HolderDashboard = ({ user: initialUser, onLogout }) => {
               📊 Dashboard
             </Link>
 
-             <Link to="/issuer-directory" className="menu-item">
-             🔍 Find Issuers
-           </Link>
+             <Link
+               to="/holder/issuers"
+               className={location.pathname === '/holder/issuers' ? 'active' : ''}
+               >
+               🔍 Find Issuers
+            </Link>
             <Link
               to="/holder/request"
               className={location.pathname === '/holder/request' ? 'active' : ''}
@@ -189,7 +193,12 @@ const HolderDashboard = ({ user: initialUser, onLogout }) => {
               path="/share"
               element={<ShareCredential user={user} />}
             />
+            <Route
+              path="/issuers"
+              element={<IssuerDirectory />}
+           />
           </Routes>
+          
         </main>
       </div>
 

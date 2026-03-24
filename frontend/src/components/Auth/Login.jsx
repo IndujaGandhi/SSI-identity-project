@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authAPI } from '../../services/api';
@@ -12,28 +13,6 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-   const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true); // ✅ Start loading
-    
-    try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
-        email,
-        password
-      });
-      
-      if (response.data.success) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        navigate('/holder');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed');
-    } finally {
-      setLoading(false); // ✅ Stop loading
-    }
-  };
   
   const handleChange = (e) => {
     setFormData({

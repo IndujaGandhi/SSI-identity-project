@@ -14,7 +14,7 @@ const generateToken = (id) => {
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { username, email, password, role, organization } = req.body;
+    const { username, email, password, role, organization, category } = req.body;
 
     // Validation
     if (!username || !email || !password || !role) {
@@ -39,7 +39,8 @@ const register = async (req, res) => {
       email,
       password,
       role,
-      organization
+      organization,
+      category
     });
 
     // Generate token

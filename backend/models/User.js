@@ -39,7 +39,21 @@ const UserSchema = new mongoose.Schema({
     type: String
   },
   organization: {
-    type: String
+    type: String,
+    default: ''
+  },
+  category: {
+    type: String,
+    enum: ['Education', 'Government', 'Healthcare', 'Finance', 'Technology', 'Other'],
+    default: 'Other'
+  },
+  description: {
+    type: String,
+    default: ''
+  },
+  issuedCredentialsCount: {
+    type: Number,
+    default: 0
   },
   isActive: {
     type: Boolean,
@@ -56,7 +70,6 @@ UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
     return next();
   }
-  
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
@@ -68,33 +81,3 @@ UserSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 module.exports = mongoose.model('User', UserSchema);
-
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  password: String,
-  role: String,
-  did: String,
-  // ... all your existing fields above ...
-  
-  // ✅ ADD THESE NEW FIELDS BELOW:
-  // Find your existing schema and ADD these fields:
-organization: {
-  type: String,
-  default: ''
-},
-category: {
-  type: String,
-  enum: ['Education', 'Government', 'Healthcare', 'Finance', 'Technology', 'Other'],
-  default: 'Other'
-},
-description: {
-  type: String,
-  default: ''
-},
-issuedCredentialsCount: {
-  type: Number,
-  default: 0
-}
-}, { timestamps: true });
-

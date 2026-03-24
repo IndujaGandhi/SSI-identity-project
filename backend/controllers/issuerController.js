@@ -41,6 +41,9 @@ const issueCredentialToHolder = async (req, res) => {
     const { credentialId } = req.params;
     const issuerDID = req.user.did;
 
+    // ✅ Accept mergedAttributes from issuer (contains both holder + issuer attributes in order)
+    const { mergedAttributes } = req.body;
+
     // Find credential request
     const credential = await Credential.findOne({ credentialId, issuerDID });
 
@@ -58,19 +61,22 @@ const issueCredentialToHolder = async (req, res) => {
       });
     }
 
+    // ✅ Use mergedAttributes if provided by issuer, otherwise use original holder attributes
+    const finalAttributes = mergedAttributes || Object.fromEntries(credential.attributes);
+
     // Create schema (if not exists)
     const schema = await createSchema(
       issuerDID,
       credential.credentialType,
       '1.0',
-      Object.keys(credential.attributes)
+      Object.keys(finalAttributes)
     );
 
     // Create credential definition
     const credDef = await createCredentialDefinition(issuerDID, schema);
 
     // Issue credential on blockchain
-    const issuedCred = await issueCredential(credDef.id, credential.attributes);
+    const issuedCred = await issueCredential(credDef.id, finalAttributes);
 
     // Prepare credential data for IPFS
     const credentialData = {
@@ -79,7 +85,7 @@ const issueCredentialToHolder = async (req, res) => {
       credDefId: credDef.id,
       issuerDID,
       holderDID: credential.holderDID,
-      attributes: credential.attributes,
+      attributes: finalAttributes,
       issuedAt: new Date().toISOString(),
       signature: issuedCred.signature || `sig_${uuidv4()}`
     };
@@ -93,7 +99,8 @@ const issueCredentialToHolder = async (req, res) => {
     // Anchor hash to blockchain
     const anchorResult = await anchorCredentialHash(credentialHash, issuerDID);
 
-    // Update credential
+    // ✅ Update credential with final merged attributes
+    credential.attributes = finalAttributes;
     credential.schemaId = schema.id;
     credential.credDefId = credDef.id;
     credential.ipfsHash = ipfsHash;

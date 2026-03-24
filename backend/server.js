@@ -52,16 +52,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/did', require('./routes/did'));
+app.use('/api/auth', authRoutes);
+app.use('/api/did', didRoutes);
+app.use('/api/directory', directoryRoutes);
 app.use('/api/credential', require('./routes/credential'));
 app.use('/api/issuer', require('./routes/issuer'));
 app.use('/api/holder', require('./routes/holder'));
 app.use('/api/verifier', require('./routes/verifier'));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/did', didRoutes);
-app.use('/api/directory', directoryRoutes);
+
 
 // Health check
 app.get('/health', (req, res) => {
