@@ -100,7 +100,8 @@ const issueCredentialToHolder = async (req, res) => {
     const anchorResult = await anchorCredentialHash(credentialHash, issuerDID);
 
     // ✅ Update credential with final merged attributes
-    credential.attributes = finalAttributes;
+    credential.attributes = new Map(Object.entries(finalAttributes));
+credential.markModified('attributes');
     credential.schemaId = schema.id;
     credential.credDefId = credDef.id;
     credential.ipfsHash = ipfsHash;
