@@ -61,8 +61,13 @@ const issueCredentialToHolder = async (req, res) => {
       });
     }
 
-    // ✅ Use mergedAttributes if provided by issuer, otherwise use original holder attributes
-    const finalAttributes = mergedAttributes || Object.fromEntries(credential.attributes);
+    // ✅ Use mergedAttributes if provided, else fall back to holder's original attributes
+const finalAttributes = mergedAttributes 
+  ? mergedAttributes 
+  : Object.fromEntries(credential.attributes);
+
+// Convert to Map to preserve insertion order in MongoDB
+const finalAttributesMap = new Map(Object.entries(finalAttributes));
 
     // Create schema (if not exists)
     const schema = await createSchema(
@@ -85,7 +90,7 @@ const issueCredentialToHolder = async (req, res) => {
       credDefId: credDef.id,
       issuerDID,
       holderDID: credential.holderDID,
-      attributes: finalAttributes,
+      attributes: Object.fromEntries(finalAttributesMap),
       issuedAt: new Date().toISOString(),
       signature: issuedCred.signature || `sig_${uuidv4()}`
     };
@@ -100,7 +105,7 @@ const issueCredentialToHolder = async (req, res) => {
     const anchorResult = await anchorCredentialHash(credentialHash, issuerDID);
 
     // ✅ Update credential with final merged attributes
-    credential.attributes = finalAttributes;
+    credential.attributes = finalAttributesMap;
     credential.schemaId = schema.id;
     credential.credDefId = credDef.id;
     credential.ipfsHash = ipfsHash;
