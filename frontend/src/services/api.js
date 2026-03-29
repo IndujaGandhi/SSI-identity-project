@@ -64,7 +64,7 @@ export const credentialAPI = {
 // Issuer APIs
 export const issuerAPI = {
   getRequests: () => API.get('/issuer/requests'),
-  issueCredential: (id) => API.post(`/issuer/issue/${id}`),
+  issueCredential: (id, data) => API.post(`/issuer/issue/${id}`, data),
   getIssued: () => API.get('/issuer/issued'),
   revoke: (id, reason) => API.post(`/issuer/revoke/${id}`, { reason })
 };
