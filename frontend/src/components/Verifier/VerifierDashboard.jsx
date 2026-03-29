@@ -17,7 +17,7 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
     verified: 0,
     failed: 0
   });
- const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {

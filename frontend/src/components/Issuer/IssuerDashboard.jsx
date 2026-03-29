@@ -18,7 +18,7 @@ const IssuerDashboard = ({ user: initialUser, onLogout }) => {
     issued: 0,
     revoked: 0
   });
- const [loading, setLoading] = useState(false);
+ const [, setLoading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
