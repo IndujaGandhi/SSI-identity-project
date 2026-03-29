@@ -20,7 +20,7 @@ const HolderDashboard = ({ user: initialUser, onLogout }) => {
     pending: 0,
     revoked: 0
   });
-  const [, setLoading] = useState(false);
+ const [loading, setLoading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
