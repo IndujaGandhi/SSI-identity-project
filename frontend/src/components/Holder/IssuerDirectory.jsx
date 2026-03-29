@@ -15,8 +15,9 @@ const IssuerDirectory = () => {
 
   useEffect(() => {
     fetchIssuers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedCategory, currentPage]);
-
+  
   const fetchIssuers = async () => {
     setLoading(true);
     setError(null);
