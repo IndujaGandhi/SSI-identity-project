@@ -3,7 +3,8 @@ const router = express.Router();
 const {
   verifyCredentialSubmission,
   getVerificationHistory,
-  checkRevocationStatus
+  checkRevocationStatus,
+  getSharedProofs
 } = require('../controllers/verifierController');
 const { protect } = require('../middleware/auth');
 const { checkRole } = require('../middleware/roleCheck');
