@@ -193,8 +193,30 @@ const checkRevocationStatus = async (req, res) => {
   }
 };
 
+// @desc    Get all proofs shared with this verifier
+// @route   GET /api/verifier/shared-proofs
+// @access  Private (Verifier only)
+const getSharedProofs = async (req, res) => {
+  try {
+    const verifierDID = req.user.did;
+    const SharedProof = require('../models/SharedProof');
+
+    const proofs = await SharedProof.find({ verifierDID }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: proofs.length,
+      data: proofs
+    });
+  } catch (error) {
+    console.error('Get shared proofs error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get shared proofs', error: error.message });
+  }
+};
+
 module.exports = {
   verifyCredentialSubmission,
   getVerificationHistory,
-  checkRevocationStatus
+  checkRevocationStatus,
+  getSharedProofs
 };

@@ -80,7 +80,8 @@ export const holderAPI = {
 export const verifierAPI = {
   verify: (data) => API.post('/verifier/verify', data),
   getHistory: () => API.get('/verifier/history'),
-  checkRevocation: (id) => API.get(`/verifier/check-revocation/${id}`)
+  checkRevocation: (id) => API.get(`/verifier/check-revocation/${id}`),
+  getSharedProofs: () => API.get('/verifier/shared-proofs') 
 };
 
 export default API;
@@ -115,6 +116,16 @@ export const getCategories = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching categories:', error);
+    throw error;
+  }
+};
+
+export const getVerifiers = async (params) => {
+  try {
+    const response = await axios.get(`${API_URL}/api/directory/verifiers`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching verifiers:', error);
     throw error;
   }
 };

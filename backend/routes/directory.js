@@ -109,4 +109,45 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+// @route   GET /api/directory/verifiers
+// @desc    Get all verifiers with search
+// @access  Public
+router.get('/verifiers', async (req, res) => {
+  try {
+    const { search, page = 1, limit = 10 } = req.query;
+    let query = { role: 'verifier' };
+
+    if (search) {
+      query.$or = [
+        { username: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { organization: { $regex: search, $options: 'i' } },
+        { did: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await User.countDocuments(query);
+
+    const verifiers = await User.find(query)
+      .select('username email did organization createdAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      data: verifiers,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        count: verifiers.length,
+        totalRecords: total
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching verifiers', error: error.message });
+  }
+});
+
 module.exports = router;

@@ -11,5 +11,6 @@ const { checkRole } = require('../middleware/roleCheck');
 router.post('/verify', protect, checkRole('verifier'), verifyCredentialSubmission);
 router.get('/history', protect, checkRole('verifier'), getVerificationHistory);
 router.get('/check-revocation/:credentialId', protect, checkRole('verifier'), checkRevocationStatus);
+router.get('/shared-proofs', protect, checkRole('verifier'), getSharedProofs);
 
 module.exports = router;

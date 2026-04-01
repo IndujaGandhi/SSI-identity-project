@@ -50,33 +50,34 @@ const shareCredential = async (req, res) => {
     const { verifierDID, revealedAttributes } = req.body;
     const holderDID = req.user.did;
 
-    // Find credential
     const credential = await Credential.findOne({ credentialId, holderDID });
-
     if (!credential) {
-      return res.status(404).json({
-        success: false,
-        message: 'Credential not found'
-      });
+      return res.status(404).json({ success: false, message: 'Credential not found' });
     }
-
     if (credential.status !== 'issued') {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot share credential with status: ${credential.status}`
-      });
+      return res.status(400).json({ success: false, message: `Cannot share credential with status: ${credential.status}` });
     }
 
-    // Retrieve full credential from IPFS
     const fullCredential = await retrieveFromIPFS(credential.ipfsHash);
 
-    // Generate ZKP for selective disclosure
     const zkpResult = await generateSelectiveDisclosureProof(
       { ...credential.toObject(), attributes: fullCredential.attributes },
       revealedAttributes || Object.keys(fullCredential.attributes)
     );
 
-    // Log activity
+    // ✅ Save shared proof to MongoDB so verifier can see it
+    const SharedProof = require('../models/SharedProof');
+    await SharedProof.create({
+      credentialId,
+      credentialType: credential.credentialType,
+      holderDID,
+      verifierDID,
+      proof: zkpResult.proof,
+      revealedAttributes: zkpResult.revealedAttributes,
+      hiddenAttributesCount: zkpResult.hiddenAttributesCount,
+      issuerDID: credential.issuerDID
+    });
+
     await logActivity({
       userId: req.user._id,
       userDID: holderDID,
@@ -104,11 +105,7 @@ const shareCredential = async (req, res) => {
     });
   } catch (error) {
     console.error('Share credential error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to share credential',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to share credential', error: error.message });
   }
 };
 
