@@ -38,16 +38,17 @@ const generateSelectiveDisclosureProof = async (credential, revealedAttributes) 
       .digest('hex');
 
     return {
-      proof: {
-        proofHash,
-        proofType: 'ZKP-Selective-Disclosure',
-        credentialId: credential.credentialId,
-        credDefId: credential.credDefId,
-        timestamp: proofData.timestamp
-      },
-      revealedAttributes: disclosedAttributes,
-      hiddenAttributesCount: Object.keys(hiddenAttributes).length
-    };
+  proof: {
+    proofHash,
+    proofType: 'ZKP-Selective-Disclosure',
+    credentialId: credential.credentialId,
+    credDefId: credential.credDefId,
+    hiddenAttributesCount: Object.keys(hiddenAttributes).length, // ✅ store inside proof
+    timestamp: proofData.timestamp
+  },
+  revealedAttributes: disclosedAttributes,
+  hiddenAttributesCount: Object.keys(hiddenAttributes).length
+};
   } catch (error) {
     console.error('ZKP generation error:', error);
     throw new Error('Failed to generate ZKP');
@@ -62,22 +63,16 @@ const generateSelectiveDisclosureProof = async (credential, revealedAttributes) 
  */
 const verifySelectiveDisclosureProof = async (proof, revealedAttributes) => {
   try {
-    // In a real system, this would verify the cryptographic proof
-    // For simulation, we check the proof structure and hash
-
     if (!proof.proofHash || !proof.credentialId || !proof.credDefId) {
-      return {
-        verified: false,
-        reason: 'Invalid proof structure'
-      };
+      return { verified: false, reason: 'Invalid proof structure' };
     }
 
-    // Simulate verification by recreating proof data
+    // Rebuild proofData exactly as it was during generation
     const proofData = {
       credentialId: proof.credentialId,
       credDefId: proof.credDefId,
-      disclosedAttributes: revealedAttributes,
-      hiddenAttributesCount: proof.hiddenAttributesCount || 0,
+      disclosedAttributes: revealedAttributes,  // ✅ key name matches generation
+      hiddenAttributesCount: proof.hiddenAttributesCount || 0, // ✅ now stored in proof
       timestamp: proof.timestamp
     };
 
@@ -97,13 +92,9 @@ const verifySelectiveDisclosureProof = async (proof, revealedAttributes) => {
     };
   } catch (error) {
     console.error('ZKP verification error:', error);
-    return {
-      verified: false,
-      reason: error.message
-    };
+    return { verified: false, reason: error.message };
   }
 };
-
 /**
  * Generate proof of credential ownership without revealing attributes
  * @param {Object} credential - The credential
