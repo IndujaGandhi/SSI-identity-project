@@ -4,39 +4,71 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const IssuerDirectory = () => {
+  const [activeTab, setActiveTab] = useState('issuers'); // 'issuers' | 'verifiers'
+
+  // Issuer state
   const [issuers, setIssuers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [issuerLoading, setIssuerLoading] = useState(false);
+  const [issuerError, setIssuerError] = useState(null);
+  const [issuerSearch, setIssuerSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [issuerPage, setIssuerPage] = useState(1);
+  const [issuerTotalPages, setIssuerTotalPages] = useState(1);
+
+  // Verifier state
+  const [verifiers, setVerifiers] = useState([]);
+  const [verifierLoading, setVerifierLoading] = useState(false);
+  const [verifierError, setVerifierError] = useState(null);
+  const [verifierSearch, setVerifierSearch] = useState('');
+  const [verifierPage, setVerifierPage] = useState(1);
+  const [verifierTotalPages, setVerifierTotalPages] = useState(1);
+
   const [copiedDID, setCopiedDID] = useState(null);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchIssuers();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedCategory, currentPage]);
-  
+    if (activeTab === 'issuers') fetchIssuers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [issuerSearch, selectedCategory, issuerPage, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'verifiers') fetchVerifiers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verifierSearch, verifierPage, activeTab]);
+
   const fetchIssuers = async () => {
-    setLoading(true);
-    setError(null);
+    setIssuerLoading(true);
+    setIssuerError(null);
     try {
-      const params = { page: currentPage, limit: 9 };
-      if (searchTerm) params.search = searchTerm;
+      const params = { page: issuerPage, limit: 9 };
+      if (issuerSearch) params.search = issuerSearch;
       if (selectedCategory) params.category = selectedCategory;
-
       const response = await axios.get(`${API_URL}/api/directory/issuers`, { params });
-
       if (response.data.success) {
         setIssuers(response.data.data);
-        setTotalPages(response.data.pagination.total);
+        setIssuerTotalPages(response.data.pagination.total);
       }
     } catch (error) {
-      console.error('Error fetching issuers:', error);
-      setError('Failed to load issuers. Please try again.');
+      setIssuerError('Failed to load issuers. Please try again.');
     } finally {
-      setLoading(false);
+      setIssuerLoading(false);
+    }
+  };
+
+  const fetchVerifiers = async () => {
+    setVerifierLoading(true);
+    setVerifierError(null);
+    try {
+      const params = { page: verifierPage, limit: 9 };
+      if (verifierSearch) params.search = verifierSearch;
+      const response = await axios.get(`${API_URL}/api/directory/verifiers`, { params });
+      if (response.data.success) {
+        setVerifiers(response.data.data);
+        setVerifierTotalPages(response.data.pagination.total);
+      }
+    } catch (error) {
+      setVerifierError('Failed to load verifiers. Please try again.');
+    } finally {
+      setVerifierLoading(false);
     }
   };
 
@@ -50,80 +82,82 @@ const IssuerDirectory = () => {
     }
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handleCategoryChange = (e) => {
-    setSelectedCategory(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const resetFilters = () => {
-    setSearchTerm('');
+  const resetIssuerFilters = () => {
+    setIssuerSearch('');
     setSelectedCategory('');
-    setCurrentPage(1);
+    setIssuerPage(1);
   };
 
-  return (
-    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', padding: '30px' }}>
+  const resetVerifierFilters = () => {
+    setVerifierSearch('');
+    setVerifierPage(1);
+  };
 
-      {/* Page Header */}
-      <div style={{ marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '32px', color: '#111827', marginBottom: '8px' }}>
-          🏛️ Issuer Directory
-        </h1>
-        <p style={{ color: '#6b7280', fontSize: '16px' }}>
-          Browse and find trusted credential issuers on the platform
-        </p>
-      </div>
+  // ── Shared UI pieces ──────────────────────────────────────────────────────
 
-      {/* Search and Filter Bar */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '20px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        marginBottom: '24px',
-        display: 'flex',
-        gap: '12px',
-        flexWrap: 'wrap',
-        alignItems: 'center'
-      }}>
+  const DIDBox = ({ did }) => (
+    <div style={{ marginBottom: '16px' }}>
+      <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', marginBottom: '6px' }}>
+        DID
+      </label>
+      {did ? (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: '6px', padding: '8px 10px' }}>
+          <code style={{ flex: 1, fontSize: '11px', fontFamily: 'monospace', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', backgroundColor: 'transparent', padding: 0 }}>
+            {did}
+          </code>
+          <button
+            onClick={() => copyDID(did)}
+            style={{ padding: '4px 10px', fontSize: '12px', backgroundColor: copiedDID === did ? '#10b981' : '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', transition: 'background-color 0.2s' }}
+          >
+            {copiedDID === did ? '✓ Copied' : '📋 Copy'}
+          </button>
+        </div>
+      ) : (
+        <span style={{ fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>DID not assigned yet</span>
+      )}
+    </div>
+  );
+
+  const Spinner = ({ label }) => (
+    <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+      <div style={{ border: '4px solid #e5e7eb', borderTop: '4px solid #4f46e5', borderRadius: '50%', width: '50px', height: '50px', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+      <p style={{ color: '#6b7280', fontSize: '16px' }}>{label}</p>
+    </div>
+  );
+
+  const ErrorBox = ({ message, onRetry }) => (
+    <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '24px', textAlign: 'center', color: '#991b1b' }}>
+      <p style={{ marginBottom: '12px', fontWeight: '500' }}>{message}</p>
+      <button onClick={onRetry} style={{ padding: '10px 24px', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit' }}>
+        Retry
+      </button>
+    </div>
+  );
+
+  const Pagination = ({ currentPage, totalPages, onPrev, onNext }) => totalPages > 1 ? (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '24px' }}>
+      <button onClick={onPrev} disabled={currentPage === 1} style={{ padding: '8px 18px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1, fontSize: '14px', fontFamily: 'inherit' }}>← Previous</button>
+      <span style={{ color: '#6b7280', fontSize: '14px' }}>Page {currentPage} of {totalPages}</span>
+      <button onClick={onNext} disabled={currentPage === totalPages} style={{ padding: '8px 18px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1, fontSize: '14px', fontFamily: 'inherit' }}>Next →</button>
+    </div>
+  ) : null;
+
+  // ── Issuers Tab ───────────────────────────────────────────────────────────
+
+  const IssuersTab = () => (
+    <>
+      {/* Search + Filter */}
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           type="text"
           placeholder="🔍  Search by email or organization..."
-          value={searchTerm}
-          onChange={handleSearch}
-          style={{
-            flex: '1',
-            minWidth: '220px',
-            padding: '10px 14px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '6px',
-            fontSize: '14px',
-            outline: 'none',
-            fontFamily: 'inherit'
-          }}
+          value={issuerSearch}
+          onChange={e => { setIssuerSearch(e.target.value); setIssuerPage(1); }}
+          style={{ flex: '1', minWidth: '220px', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', outline: 'none', fontFamily: 'inherit' }}
           onFocus={e => e.target.style.borderColor = '#4f46e5'}
           onBlur={e => e.target.style.borderColor = '#e5e7eb'}
         />
-
-        <select
-          value={selectedCategory}
-          onChange={handleCategoryChange}
-          style={{
-            padding: '10px 14px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '6px',
-            fontSize: '14px',
-            backgroundColor: 'white',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            color: '#111827'
-          }}
-        >
+        <select value={selectedCategory} onChange={e => { setSelectedCategory(e.target.value); setIssuerPage(1); }} style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white', cursor: 'pointer', fontFamily: 'inherit', color: '#111827' }}>
           <option value="">All Categories</option>
           <option value="Education">Education</option>
           <option value="Healthcare">Healthcare</option>
@@ -132,378 +166,190 @@ const IssuerDirectory = () => {
           <option value="Technology">Technology</option>
           <option value="Other">Other</option>
         </select>
-
-        {(searchTerm || selectedCategory) && (
-          <button
-            onClick={resetFilters}
-            style={{
-              padding: '10px 18px',
-              backgroundColor: '#f3f4f6',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-              fontSize: '14px',
-              color: '#374151',
-              cursor: 'pointer',
-              fontFamily: 'inherit'
-            }}
-          >
-            ✕ Clear Filters
-          </button>
+        {(issuerSearch || selectedCategory) && (
+          <button onClick={resetIssuerFilters} style={{ padding: '10px 18px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>✕ Clear</button>
         )}
-
-        <span style={{ color: '#6b7280', fontSize: '14px', marginLeft: 'auto' }}>
-          {issuers.length} issuer{issuers.length !== 1 ? 's' : ''} found
-        </span>
+        <span style={{ color: '#6b7280', fontSize: '14px', marginLeft: 'auto' }}>{issuers.length} issuer{issuers.length !== 1 ? 's' : ''} found</span>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div style={{
-          textAlign: 'center',
-          padding: '60px 20px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{
-            border: '4px solid #e5e7eb',
-            borderTop: '4px solid #4f46e5',
-            borderRadius: '50%',
-            width: '50px',
-            height: '50px',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }} />
-          <p style={{ color: '#6b7280', fontSize: '16px' }}>Loading issuers...</p>
-        </div>
-      )}
+      {issuerLoading && <Spinner label="Loading issuers..." />}
+      {issuerError && <ErrorBox message={issuerError} onRetry={fetchIssuers} />}
 
-      {/* Error State */}
-      {error && (
-        <div style={{
-          backgroundColor: '#fee2e2',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          padding: '24px',
-          textAlign: 'center',
-          color: '#991b1b'
-        }}>
-          <p style={{ marginBottom: '12px', fontWeight: '500' }}>{error}</p>
-          <button
-            onClick={fetchIssuers}
-            style={{
-              padding: '10px 24px',
-              backgroundColor: '#4f46e5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontFamily: 'inherit'
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Issuers Grid */}
-      {!loading && !error && (
+      {!issuerLoading && !issuerError && (
         <>
           {issuers.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '60px 20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
+            <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-              <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '8px' }}>
-                No issuers found
-              </h3>
-              <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-                Try adjusting your search or clearing the filters
-              </p>
-              <button
-                onClick={resetFilters}
-                style={{
-                  padding: '10px 24px',
-                  backgroundColor: '#4f46e5',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontFamily: 'inherit'
-                }}
-              >
-                Clear Filters
-              </button>
+              <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '8px' }}>No issuers found</h3>
+              <p style={{ color: '#6b7280', marginBottom: '20px' }}>Try adjusting your search or clearing the filters</p>
+              <button onClick={resetIssuerFilters} style={{ padding: '10px 24px', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit' }}>Clear Filters</button>
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-              gap: '20px',
-              marginBottom: '30px'
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px', marginBottom: '30px' }}>
               {issuers.map((issuer) => (
-                <div
-                  key={issuer._id}
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: '8px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    overflow: 'hidden',
-                    transition: 'transform 0.2s, box-shadow 0.2s'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-                  }}
-                >
-                  {/* Card Top Bar */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                    padding: '14px 20px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{
-                      color: 'white',
-                      fontWeight: '700',
-                      fontSize: '16px'
-                    }}>
-                      🏢 {issuer.organization || 'Unknown Organization'}
-                    </span>
-                    <span style={{
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase'
-                    }}>
-                      {issuer.category || 'Other'}
-                    </span>
+                <div key={issuer._id} style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}>
+                  <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'white', fontWeight: '700', fontSize: '16px' }}>🏢 {issuer.organization || 'Unknown Organization'}</span>
+                    <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase' }}>{issuer.category || 'Other'}</span>
                   </div>
-
-                  {/* Card Body */}
                   <div style={{ padding: '20px' }}>
-
-                    {/* Email */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '12px',
-                      padding: '10px',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '6px'
-                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
                       <span>📧</span>
-                      <span style={{ fontSize: '14px', color: '#374151' }}>
-                        {issuer.email}
-                      </span>
+                      <span style={{ fontSize: '14px', color: '#374151' }}>{issuer.email}</span>
                     </div>
-
-                    {/* Description */}
-                    <p style={{
-                      fontSize: '14px',
-                      color: '#6b7280',
-                      marginBottom: '16px',
-                      lineHeight: '1.6',
-                      minHeight: '40px'
-                    }}>
-                      {issuer.description || 'No description provided.'}
-                    </p>
-
-                    {/* Stats Row */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '12px',
-                      marginBottom: '16px'
-                    }}>
-                      <div style={{
-                        flex: 1,
-                        backgroundColor: '#eef2ff',
-                        borderRadius: '6px',
-                        padding: '12px',
-                        textAlign: 'center'
-                      }}>
-                        <div style={{
-                          fontSize: '24px',
-                          fontWeight: '700',
-                          color: '#4f46e5'
-                        }}>
-                          {issuer.issuedCredentialsCount || 0}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
-                          Credentials Issued
-                        </div>
+                    <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px', lineHeight: '1.6', minHeight: '40px' }}>{issuer.description || 'No description provided.'}</p>
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                      <div style={{ flex: 1, backgroundColor: '#eef2ff', borderRadius: '6px', padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#4f46e5' }}>{issuer.issuedCredentialsCount || 0}</div>
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Credentials Issued</div>
                       </div>
-                      <div style={{
-                        flex: 1,
-                        backgroundColor: '#f0fdf4',
-                        borderRadius: '6px',
-                        padding: '12px',
-                        textAlign: 'center'
-                      }}>
-                        <div style={{
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: '#10b981'
-                        }}>
-                          {new Date(issuer.createdAt).toLocaleDateString('en-IN', {
-                            day: '2-digit', month: 'short', year: 'numeric'
-                          })}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
-                          Member Since
-                        </div>
+                      <div style={{ flex: 1, backgroundColor: '#f0fdf4', borderRadius: '6px', padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#10b981' }}>{new Date(issuer.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Member Since</div>
                       </div>
                     </div>
-
-                    {/* DID Section */}
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{
-                        display: 'block',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        color: '#6b7280',
-                        textTransform: 'uppercase',
-                        marginBottom: '6px'
-                      }}>
-                        Issuer DID
-                      </label>
-                      {issuer.did ? (
-                        <div style={{
-                          display: 'flex',
-                          gap: '8px',
-                          alignItems: 'center',
-                          backgroundColor: '#f3f4f6',
-                          borderRadius: '6px',
-                          padding: '8px 10px'
-                        }}>
-                          <code style={{
-                            flex: 1,
-                            fontSize: '11px',
-                            fontFamily: 'monospace',
-                            color: '#1f2937',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            backgroundColor: 'transparent',
-                            padding: 0
-                          }}>
-                            {issuer.did}
-                          </code>
-                          <button
-                            onClick={() => copyDID(issuer.did)}
-                            style={{
-                              padding: '4px 10px',
-                              fontSize: '12px',
-                              backgroundColor: copiedDID === issuer.did ? '#10b981' : '#4f46e5',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              whiteSpace: 'nowrap',
-                              fontFamily: 'inherit',
-                              transition: 'background-color 0.2s'
-                            }}
-                          >
-                            {copiedDID === issuer.did ? '✓ Copied' : '📋 Copy'}
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{
-                          fontSize: '13px',
-                          color: '#9ca3af',
-                          fontStyle: 'italic'
-                        }}>
-                          DID not assigned yet
-                        </span>
-                      )}
-                    </div>
-
+                    <DIDBox did={issuer.did} />
                   </div>
                 </div>
               ))}
             </div>
           )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '12px',
-              marginTop: '24px'
-            }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{
-                  padding: '8px 18px',
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  opacity: currentPage === 1 ? 0.4 : 1,
-                  fontSize: '14px',
-                  fontFamily: 'inherit'
-                }}
-              >
-                ← Previous
-              </button>
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: '8px 18px',
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  opacity: currentPage === totalPages ? 0.4 : 1,
-                  fontSize: '14px',
-                  fontFamily: 'inherit'
-                }}
-              >
-                Next →
-              </button>
-            </div>
-          )}
+          <Pagination currentPage={issuerPage} totalPages={issuerTotalPages} onPrev={() => setIssuerPage(p => Math.max(1, p - 1))} onNext={() => setIssuerPage(p => Math.min(issuerTotalPages, p + 1))} />
         </>
       )}
+    </>
+  );
 
-      {/* Copy Toast Notification */}
+  // ── Verifiers Tab ─────────────────────────────────────────────────────────
+
+  const VerifiersTab = () => (
+    <>
+      {/* Search */}
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="🔍  Search by name, email, organization or DID..."
+          value={verifierSearch}
+          onChange={e => { setVerifierSearch(e.target.value); setVerifierPage(1); }}
+          style={{ flex: '1', minWidth: '220px', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', outline: 'none', fontFamily: 'inherit' }}
+          onFocus={e => e.target.style.borderColor = '#10b981'}
+          onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+        />
+        {verifierSearch && (
+          <button onClick={resetVerifierFilters} style={{ padding: '10px 18px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>✕ Clear</button>
+        )}
+        <span style={{ color: '#6b7280', fontSize: '14px', marginLeft: 'auto' }}>{verifiers.length} verifier{verifiers.length !== 1 ? 's' : ''} found</span>
+      </div>
+
+      {verifierLoading && <Spinner label="Loading verifiers..." />}
+      {verifierError && <ErrorBox message={verifierError} onRetry={fetchVerifiers} />}
+
+      {!verifierLoading && !verifierError && (
+        <>
+          {verifiers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+              <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '8px' }}>No verifiers found</h3>
+              <p style={{ color: '#6b7280', marginBottom: '20px' }}>Try adjusting your search</p>
+              <button onClick={resetVerifierFilters} style={{ padding: '10px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit' }}>Clear Search</button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+              {verifiers.map((verifier) => (
+                <div key={verifier._id} style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}>
+                  {/* Card Top */}
+                  <div style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'white', fontWeight: '700', fontSize: '16px' }}>✓ {verifier.organization || verifier.username || 'Unknown'}</span>
+                    <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase' }}>VERIFIER</span>
+                  </div>
+                  <div style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                      <span>👤</span>
+                      <span style={{ fontSize: '14px', color: '#374151', fontWeight: '600' }}>{verifier.username}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                      <span>📧</span>
+                      <span style={{ fontSize: '14px', color: '#374151' }}>{verifier.email}</span>
+                    </div>
+                    <div style={{ backgroundColor: '#f0fdf4', borderRadius: '6px', padding: '12px', textAlign: 'center', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#10b981' }}>{new Date(verifier.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Member Since</div>
+                    </div>
+                    <DIDBox did={verifier.did} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <Pagination currentPage={verifierPage} totalPages={verifierTotalPages} onPrev={() => setVerifierPage(p => Math.max(1, p - 1))} onNext={() => setVerifierPage(p => Math.min(verifierTotalPages, p + 1))} />
+        </>
+      )}
+    </>
+  );
+
+  // ── Main Render ───────────────────────────────────────────────────────────
+
+  return (
+    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', padding: '30px' }}>
+
+      {/* Page Header */}
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '32px', color: '#111827', marginBottom: '8px' }}>
+          🏛️ Directory
+        </h1>
+        <p style={{ color: '#6b7280', fontSize: '16px' }}>
+          Browse and find trusted issuers and verifiers on the platform
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '0', marginBottom: '24px', backgroundColor: 'white', borderRadius: '8px', padding: '6px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', width: 'fit-content' }}>
+        <button
+          onClick={() => setActiveTab('issuers')}
+          style={{
+            padding: '10px 28px',
+            borderRadius: '6px',
+            border: 'none',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 0.2s',
+            backgroundColor: activeTab === 'issuers' ? '#4f46e5' : 'transparent',
+            color: activeTab === 'issuers' ? 'white' : '#6b7280'
+          }}
+        >
+          🏢 Issuers
+        </button>
+        <button
+          onClick={() => setActiveTab('verifiers')}
+          style={{
+            padding: '10px 28px',
+            borderRadius: '6px',
+            border: 'none',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 0.2s',
+            backgroundColor: activeTab === 'verifiers' ? '#10b981' : 'transparent',
+            color: activeTab === 'verifiers' ? 'white' : '#6b7280'
+          }}
+        >
+          ✓ Verifiers
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'issuers' ? <IssuersTab /> : <VerifiersTab />}
+
+      {/* Copy Toast */}
       {copiedDID && (
-        <div style={{
-          position: 'fixed',
-          bottom: '30px',
-          right: '30px',
-          backgroundColor: '#10b981',
-          color: 'white',
-          padding: '12px 24px',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: '500',
-          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-          zIndex: 1000
-        }}>
+        <div style={{ position: 'fixed', bottom: '30px', right: '30px', backgroundColor: '#10b981', color: 'white', padding: '12px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: '500', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 1000 }}>
           ✓ DID copied to clipboard!
         </div>
       )}

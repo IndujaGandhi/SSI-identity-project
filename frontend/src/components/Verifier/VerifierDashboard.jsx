@@ -5,6 +5,7 @@ import Footer from '../Common/Footer';
 import CreateDID from '../DID/CreateDID';
 import VerifyCredential from './VerifyCredential';
 import VerificationHistory from './VerificationHistory';
+import SharedProofs from './SharedProofs';
 import { verifierAPI, authAPI } from '../../services/api';
 import '../../styles/Dashboard.css';
 import DIDDisplay from '../Common/DIDDisplay';
@@ -12,23 +13,20 @@ import DIDDisplay from '../Common/DIDDisplay';
 
 const VerifierDashboard = ({ user: initialUser, onLogout }) => {
   const [user, setUser] = useState(initialUser);
-  const [stats, setStats] = useState({
-    total: 0,
-    verified: 0,
-    failed: 0
-  });
+  const [stats, setStats] = useState({ total: 0, verified: 0, failed: 0 });
+  const [sharedProofsCount, setSharedProofsCount] = useState(0);
   const [, setLoading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     fetchStats();
+    fetchSharedProofsCount();
   }, []);
 
   const fetchStats = async () => {
     try {
       const response = await verifierAPI.getHistory();
       const history = response.data.data;
-      
       setStats({
         total: history.length,
         verified: history.filter(h => h.status === 'success').length,
@@ -41,7 +39,16 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
     }
   };
 
-  const handleDIDCreated = async (didData) => {
+  const fetchSharedProofsCount = async () => {
+    try {
+      const response = await verifierAPI.getSharedProofs();
+      setSharedProofsCount(response.data.count || 0);
+    } catch (error) {
+      console.error('Failed to fetch shared proofs count:', error);
+    }
+  };
+
+  const handleDIDCreated = async () => {
     try {
       const response = await authAPI.getMe();
       setUser(response.data.data.user);
@@ -64,22 +71,29 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
             <h3>✓ Verifier Menu</h3>
           </div>
           <nav className="sidebar-nav">
-            <Link
-              to="/verifier"
-              className={location.pathname === '/verifier' ? 'active' : ''}
-            >
+            <Link to="/verifier" className={location.pathname === '/verifier' ? 'active' : ''}>
               📊 Dashboard
             </Link>
-            <Link
-              to="/verifier/verify"
-              className={location.pathname === '/verifier/verify' ? 'active' : ''}
-            >
+            <Link to="/verifier/verify" className={location.pathname === '/verifier/verify' ? 'active' : ''}>
               🔍 Verify Credential
             </Link>
-            <Link
-              to="/verifier/history"
-              className={location.pathname === '/verifier/history' ? 'active' : ''}
-            >
+            <Link to="/verifier/shared-proofs" className={location.pathname === '/verifier/shared-proofs' ? 'active' : ''}>
+              📨 Shared Proofs
+              {sharedProofsCount > 0 && (
+                <span style={{
+                  marginLeft: '8px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  borderRadius: '10px',
+                  padding: '1px 7px',
+                  fontSize: '11px',
+                  fontWeight: '700'
+                }}>
+                  {sharedProofsCount}
+                </span>
+              )}
+            </Link>
+            <Link to="/verifier/history" className={location.pathname === '/verifier/history' ? 'active' : ''}>
               📜 Verification History
             </Link>
           </nav>
@@ -95,14 +109,14 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
                     <h1>Verifier Dashboard</h1>
                     <p>Verify credentials and check authenticity</p>
                   </div>
-                  
-{user && (
-  <DIDDisplay 
-    did={user.did}
-    userName={user.name}
-    role={user.role}
-  />
-)}
+
+                  {user && (
+                    <DIDDisplay
+                      did={user.did}
+                      userName={user.name}
+                      role={user.role}
+                    />
+                  )}
 
                   {!user.did ? (
                     <CreateDID user={user} onDIDCreated={handleDIDCreated} />
@@ -116,7 +130,6 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
                             <p>Total Verifications</p>
                           </div>
                         </div>
-
                         <div className="stat-card">
                           <div className="stat-icon">✅</div>
                           <div className="stat-info">
@@ -124,12 +137,18 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
                             <p>Successfully Verified</p>
                           </div>
                         </div>
-
                         <div className="stat-card">
                           <div className="stat-icon">❌</div>
                           <div className="stat-info">
                             <h3>{stats.failed}</h3>
                             <p>Failed Verifications</p>
+                          </div>
+                        </div>
+                        <div className="stat-card">
+                          <div className="stat-icon">📨</div>
+                          <div className="stat-info">
+                            <h3>{sharedProofsCount}</h3>
+                            <p>Received Proofs</p>
                           </div>
                         </div>
                       </div>
@@ -138,15 +157,16 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
                         <h2>Welcome, {user.username}!</h2>
                         <p>
                           As a verifier, you can verify credentials presented by holders,
-                          check their authenticity on the blockchain, and ensure they haven't
-                          been revoked. You can also verify Zero-Knowledge Proofs for
-                          selective disclosure.
+                          check their authenticity on the blockchain, and view Zero-Knowledge
+                          Proofs shared directly with your DID.
                         </p>
-
                         <div className="quick-actions">
                           <h3>Quick Actions</h3>
                           <Link to="/verifier/verify" className="btn-action">
                             Verify a Credential
+                          </Link>
+                          <Link to="/verifier/shared-proofs" className="btn-action">
+                            View Shared Proofs
                           </Link>
                           <Link to="/verifier/history" className="btn-action">
                             View History
@@ -158,14 +178,9 @@ const VerifierDashboard = ({ user: initialUser, onLogout }) => {
                 </>
               }
             />
-            <Route
-              path="/verify"
-              element={<VerifyCredential user={user} onVerified={refreshStats} />}
-            />
-            <Route
-              path="/history"
-              element={<VerificationHistory user={user} />}
-            />
+            <Route path="/verify" element={<VerifyCredential user={user} onVerified={refreshStats} />} />
+            <Route path="/shared-proofs" element={<SharedProofs user={user} />} />
+            <Route path="/history" element={<VerificationHistory user={user} />} />
           </Routes>
         </main>
       </div>
