@@ -1,73 +1,66 @@
-// Simulated IPFS Service (no actual IPFS dependency)
+// Simulated IPFS Service - MongoDB backed (persistent)
 const { encrypt, decrypt } = require('../utils/encryption');
 const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
 
-// In-memory storage for simulation
-const ipfsStorage = new Map();
+// MongoDB schema for persistent IPFS storage
+const IPFSStorageSchema = new mongoose.Schema({
+  hash: { type: String, required: true, unique: true },
+  encryptedData: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
 
-// Upload encrypted data to "IPFS" (simulated)
+const IPFSStorage = mongoose.models.IPFSStorage || 
+  mongoose.model('IPFSStorage', IPFSStorageSchema);
+
+// Upload encrypted data to "IPFS" (MongoDB backed)
 const uploadToIPFS = async (data) => {
   try {
     console.log('📤 Attempting to upload to IPFS...');
-    console.log('Data to upload:', JSON.stringify(data).substring(0, 100) + '...');
-    
-    // Validate data
-    if (!data) {
-      throw new Error('No data provided for IPFS upload');
-    }
 
-    // Encrypt data before uploading
+    if (!data) throw new Error('No data provided for IPFS upload');
+
     let encryptedData;
     try {
       encryptedData = encrypt(data);
       console.log('✅ Data encrypted successfully');
     } catch (encryptError) {
-      console.error('Encryption failed:', encryptError);
       throw new Error('Failed to encrypt data: ' + encryptError.message);
     }
-    
-    // Generate fake IPFS hash (CID)
+
     const ipfsHash = `Qm${uuidv4().replace(/-/g, '')}`;
-    
-    // Store in memory (simulating IPFS)
-    ipfsStorage.set(ipfsHash, encryptedData);
-    
+
+    // Store in MongoDB (persistent)
+    await IPFSStorage.create({ hash: ipfsHash, encryptedData });
+
     console.log(`✅ [SIMULATION] Data uploaded to IPFS: ${ipfsHash}`);
-    console.log(`📊 Storage size: ${ipfsStorage.size} items`);
-    
     return ipfsHash;
   } catch (error) {
     console.error('❌ IPFS upload error:', error);
-    console.error('Error stack:', error.stack);
     throw new Error('Failed to upload to IPFS: ' + error.message);
   }
 };
 
-// Retrieve and decrypt data from "IPFS" (simulated)
+// Retrieve and decrypt data from "IPFS" (MongoDB backed)
 const retrieveFromIPFS = async (hash) => {
   try {
     console.log(`📥 Attempting to retrieve from IPFS: ${hash}`);
-    
-    // Retrieve from memory
-    const encryptedData = ipfsStorage.get(hash);
-    
-    if (!encryptedData) {
+
+    const stored = await IPFSStorage.findOne({ hash });
+
+    if (!stored) {
       console.error(`❌ Data not found for hash: ${hash}`);
       throw new Error('Data not found in IPFS');
     }
-    
-    console.log('✅ Encrypted data found');
-    
-    // Decrypt data
+
     let decryptedData;
     try {
-      decryptedData = decrypt(encryptedData);
+      decryptedData = decrypt(stored.encryptedData);
       console.log('✅ Data decrypted successfully');
     } catch (decryptError) {
-      console.error('Decryption failed:', decryptError);
       throw new Error('Failed to decrypt data: ' + decryptError.message);
     }
-    
+
     console.log(`✅ [SIMULATION] Data retrieved from IPFS: ${hash}`);
     return decryptedData;
   } catch (error) {
@@ -76,25 +69,18 @@ const retrieveFromIPFS = async (hash) => {
   }
 };
 
-// Check if IPFS is available (always returns connected in simulation)
 const checkIPFSStatus = async () => {
-  return { 
-    status: 'connected (simulation)', 
+  const count = await IPFSStorage.countDocuments();
+  return {
+    status: 'connected (simulation)',
     version: 'simulated-1.0.0',
-    mode: 'in-memory-storage',
-    itemsStored: ipfsStorage.size
+    mode: 'mongodb-storage',
+    itemsStored: count
   };
-};
-
-// Clear storage (for testing)
-const clearStorage = () => {
-  ipfsStorage.clear();
-  console.log('🗑️ IPFS storage cleared');
 };
 
 module.exports = {
   uploadToIPFS,
   retrieveFromIPFS,
-  checkIPFSStatus,
-  clearStorage
+  checkIPFSStatus
 };
