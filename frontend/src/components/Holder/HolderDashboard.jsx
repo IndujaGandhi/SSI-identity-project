@@ -74,7 +74,7 @@ const HolderDashboard = ({ user: initialUser, onLogout }) => {
                to="/holder/issuers"
                className={location.pathname === '/holder/issuers' ? 'active' : ''}
                >
-               🔍 Find Issuers
+               🔍 Find Issuers/verifier
             </Link>
             <Link
               to="/holder/request"
